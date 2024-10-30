@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasmas</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: url('fondo.jpg') no-repeat center center fixed;
+            background-size: cover; /* Ajusta la imagen de fondo */
+            color: white;
+            cursor: url('lampara.png')16 16, auto;
+        }
+        #areaDeJuego {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        .fantasma {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background-image: url('fantasma.png'); /* Asegúrate de que la imagen esté en la ruta correcta */
+            background-size: cover;
+        }
+        #videoFinal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+        #modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 10;
+        }
+        #musicaFondo {
+            display: none; /* Oculta el audio inicialmente */
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="musicaFondo" loop>
+        <source src="background_music.wav" type="audio/wav">
+        Tu navegador no soporta audio.
+    </audio>
+
+    <div id="modal">
+        <h2>Fantasmas en la noche, no te dejes atrapar!!!.</h2>
+        <button onclick="activarMusica()">JUGAR</button>
+    </div>
+
+    <div id="areaDeJuego"></div>
+    
+    <video id="videoFinal" width="640" height="360" autoplay>
+        <source src="screamer_video.mp4" type="video/mp4">
+        Tu navegador no soporta el video.
+    </video>
+
+    <audio id="sonidoBoo">
+        <source src="boo_sound.mp3" type="audio/mp3">
+        Tu navegador no soporta audio.
+    </audio>
+
+    <script>
+        const modal = document.getElementById('modal');
+        const musicaFondo = document.getElementById('musicaFondo');
+
+        // Función para mostrar el modal
+        function mostrarModal() {
+            modal.style.display = 'block';
+        }
+
+        // Función para activar la música y comenzar el juego
+        function activarMusica() {
+            musicaFondo.play().catch(error => {
+                console.error('Error al reproducir la música:', error);
+            });
+            modal.style.display = 'none'; // Cierra el modal
+            iniciarJuego(); // Llama a la función para iniciar el juego
+        }
+
+        // Función para iniciar el juego
+        function iniciarJuego() {
+            generarFantasma(); // Genera el primer fantasma
+            refuerzo(); // Comienza a generar refuerzos
+            seguirCursor(); // Inicia el seguimiento del cursor
+            console.log("El juego ha comenzado.");
+        }
+
+        // Muestra el modal al cargar la página
+        window.onload = mostrarModal;
+
+        const areaDeJuego = document.getElementById('areaDeJuego');
+        const sonidoBoo = document.getElementById('sonidoBoo');
+        const videoFinal = document.getElementById('videoFinal');
+
+        let cursorX = 0, cursorY = 0;
+        let fantasmas = [];
+        let baseVelocidad = 2;
+        let incrementoVelocidad = 1;
+        let velocidadActual = baseVelocidad;
+        let fantasmasExtrasPorNivel = 1;
+        let maxFantasmas = 20;
+        let nivelActual = 1;
+        let intervaloRefuerzo = 3000; // Intervalo para refuerzos
+        let refuerzoID;
+
+        // Función para generar un fantasma
+        function generarFantasma() {
+            const lado = Math.floor(Math.random() * 4);
+            let x, y;
+
+            switch (lado) {
+                case 0: // Izquierda
+                    x = 0;
+                    y = Math.random() * window.innerHeight;
+                    break;
+                case 1: // Derecha
+                    x = window.innerWidth;
+                    y = Math.random() * window.innerHeight;
+                    break;
+                case 2: // Arriba
+                    x = Math.random() * window.innerWidth;
+                    y = 0;
+                    break;
+                case 3: // Abajo
+                    x = Math.random() * window.innerWidth;
+                    y = window.innerHeight;
+                    break;
+            }
+            fantasmas.push({ x, y });
+        }
+
+        // Chequear colisiones
+        function chequearColision() {
+            for (let i = 0; i < fantasmas.length; i++) {
+                const fantasma = fantasmas[i];
+                if (Math.abs(cursorX - fantasma.x) < 25 && Math.abs(cursorY - fantasma.y) < 25) {
+                    reproducirBoo(); // Reproducir sonido de colisión
+                    aumentarDificultad();
+                    fantasmas.splice(i, 1);
+                    if (nivelActual >= 25) {
+                        videoFinal.style.display = 'block'; // Mostrar video final
+                        videoFinal.play(); // Reproducir video automáticamente
+                        videoFinal.onended = () => {
+                            alert("Gracias por jugar Credito : Youtube.com/@Ezequiel_GZ");
+                            window.location.reload(); // Reiniciar juego al terminar el video
+                        };
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Reproducir sonido de colisión
+        function reproducirBoo() {
+            sonidoBoo.currentTime = 0; // Reiniciar el tiempo para que suene desde el inicio
+            sonidoBoo.play().catch((error) => {
+                console.error('Error al reproducir sonido de colisión:', error);
+            });
+        }
+
+        // Aumentar dificultad
+        function aumentarDificultad() {
+            velocidadActual += incrementoVelocidad;
+            fantasmasExtrasPorNivel += 1;
+            nivelActual += 1;
+            console.log(`Velocidad: ${velocidadActual}, Fantasmas extras por nivel: ${fantasmasExtrasPorNivel}, Nivel: ${nivelActual}`);
+
+            for (let j = 0; j < fantasmasExtrasPorNivel; j++) {
+                if (fantasmas.length < maxFantasmas) {
+                    generarFantasma();
+                }
+            }
+        }
+
+        // Función para crear refuerzos
+        function refuerzo() {
+            if (fantasmas.length < maxFantasmas) {
+                generarFantasma();
+                console.log("¡Un fantasma de refuerzo ha aparecido!");
+            }
+            refuerzoID = setTimeout(refuerzo, intervaloRefuerzo);
+        }
+
+        // Seguir el cursor
+        function seguirCursor() {
+            const areaRect = areaDeJuego.getBoundingClientRect();
+            cursorX = Math.min(Math.max(cursorX, areaRect.left), areaRect.right);
+            cursorY = Math.min(Math.max(cursorY, areaRect.top), areaRect.bottom);
+
+            areaDeJuego.innerHTML = ''; // Limpiar el área de juego
+
+            fantasmas.forEach(fantasma => {
+                const divFantasma = document.createElement('div');
+                divFantasma.classList.add('fantasma');
+                divFantasma.style.left = `${fantasma.x}px`;
+                divFantasma.style.top = `${fantasma.y}px`;
+                areaDeJuego.appendChild(divFantasma);
+
+                // Mover el fantasma
+                if (fantasma.x < cursorX) {
+                    fantasma.x += Math.random() * (velocidadActual + 2);
+                } else {
+                    fantasma.x -= Math.random() * (velocidadActual + 2);
+                }
+
+                if (fantasma.y < cursorY) {
+                    fantasma.y += Math.random() * (velocidadActual + 2);
+                } else {
+                    fantasma.y -= Math.random() * (velocidadActual + 2);
+                }
+            });
+
+            chequearColision();
+            requestAnimationFrame(seguirCursor);
+        }
+
+        // Detectar movimiento del mouse
+        document.addEventListener('mousemove', (event) => {
+            cursorX = event.clientX;
+            cursorY = event.clientY;
+        });
+
+    </script>
+</body>
+</html>
